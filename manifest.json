@@ -1,0 +1,10 @@
+{
+  "name": "无限复活版 2048",
+  "short_name": "无限2048",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#faf8ef",
+  "theme_color": "#bbada0",
+  "orientation": "portrait",
+  "description": "一个可以无限悔棋、失败复活的 2048 小游戏"
+}

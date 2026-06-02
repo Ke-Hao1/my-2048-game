@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>无限复活版 2048</title>
+
+  <!-- 游戏样式 -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- PWA 配置文件 -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- iPhone / Safari 主屏幕 App 相关设置 -->
+  <meta name="theme-color" content="#bbada0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="无限2048" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+</head>
+
+<body>
+  <main class="app">
+    <header class="top">
+      <div>
+        <h1>2048</h1>
+        <p>无限悔棋 · 失败复活版</p>
+      </div>
+
+      <div class="scores">
+        <div class="score-box">
+          <span>分数</span>
+          <strong id="score">0</strong>
+        </div>
+
+        <div class="score-box">
+          <span>最高分</span>
+          <strong id="best">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="buttons">
+      <button id="newGameBtn">新游戏</button>
+      <button id="undoBtn">回到上一步</button>
+      <button id="reviveBtn">失败复活</button>
+    </section>
+
+    <section class="game-wrap">
+      <div id="board" class="board"></div>
+
+      <div id="message" class="message hidden">
+        <h2 id="messageTitle">游戏结束</h2>
+        <p id="messageText">你可以点击“失败复活”回到上一步。</p>
+      </div>
+    </section>
+
+    <section class="tips">
+      <p>电脑：使用方向键移动。</p>
+      <p>手机：上下左右滑动屏幕。</p>
+      <p>iPhone：用 Safari 打开后，可以添加到主屏幕。</p>
+    </section>
+  </main>
+
+  <!-- 游戏逻辑 -->
+  <script src="script.js"></script>
+
+  <!-- 注册 Service Worker，让网页更像 App -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then(() => {
+            console.log("Service Worker 注册成功");
+          })
+          .catch(error => {
+            console.log("Service Worker 注册失败：", error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
