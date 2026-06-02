@@ -11,7 +11,7 @@ const messageTitle = document.getElementById("messageTitle");
 const messageText = document.getElementById("messageText");
 
 const SIZE = 4;
-const MOVE_TIME = 170;
+const MOVE_TIME = 135;
 
 let gridCells = null;
 let tileLayer = null;
@@ -36,9 +36,8 @@ let drag = {
   active: false,
   startX: 0,
   startY: 0,
-  offsetX: 0,
-  offsetY: 0,
-  pointerId: null
+  pointerId: null,
+  direction: null
 };
 
 function setupBoard() {
@@ -200,11 +199,22 @@ function getFontClass(value) {
   return "";
 }
 
-function setElementPosition(element, row, col, offsetX = 0, offsetY = 0) {
-  const x = col * (metrics.tileSize + metrics.gap) + offsetX;
-  const y = row * (metrics.tileSize + metrics.gap) + offsetY;
+function getCellPixelPosition(row, col) {
+  const step = metrics.tileSize + metrics.gap;
 
+  return {
+    x: col * step,
+    y: row * step
+  };
+}
+
+function setElementPixelPosition(element, x, y) {
   element.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+function setElementPosition(element, row, col) {
+  const position = getCellPixelPosition(row, col);
+  setElementPixelPosition(element, position.x, position.y);
 }
 
 function applyTilePositions() {
@@ -215,13 +225,7 @@ function applyTilePositions() {
 
     if (!element) return;
 
-    setElementPosition(
-      element,
-      tile.row,
-      tile.col,
-      drag.offsetX,
-      drag.offsetY
-    );
+    setElementPosition(element, tile.row, tile.col);
   });
 }
 
@@ -276,13 +280,7 @@ function renderTiles(options = {}) {
       }, 180);
     }
 
-    setElementPosition(
-      element,
-      tile.row,
-      tile.col,
-      drag.offsetX,
-      drag.offsetY
-    );
+    setElementPosition(element, tile.row, tile.col);
   });
 
   updateUI();
@@ -298,8 +296,13 @@ function updateUI() {
 
   bestEl.textContent = best;
 
-  undoBtn.disabled = history.length === 0 || isAnimating;
-  reviveBtn.disabled = history.length === 0 || isAnimating;
+  /*
+    重点修改：
+    按钮不再因为 isAnimating 反复 disabled / enabled。
+    这样手机滑动时，“回到上一步”和“失败复活”不会闪烁。
+  */
+  undoBtn.disabled = history.length === 0;
+  reviveBtn.disabled = history.length === 0;
 
   if (gameOver) {
     message.classList.remove("hidden");
@@ -492,9 +495,6 @@ function move(direction) {
   score += result.scoreGain;
   updateUI();
 
-  drag.offsetX = 0;
-  drag.offsetY = 0;
-
   result.animationTargets.forEach((target, id) => {
     const element = tileElements.get(id);
 
@@ -540,9 +540,6 @@ function undo() {
   nextTileId = previousState.nextTileId;
   gameOver = false;
 
-  drag.offsetX = 0;
-  drag.offsetY = 0;
-
   renderTiles();
 }
 
@@ -587,10 +584,6 @@ function clamp(value, min, max) {
 
 function snapBackDrag() {
   board.classList.remove("dragging");
-
-  drag.offsetX = 0;
-  drag.offsetY = 0;
-
   applyTilePositions();
 }
 
@@ -602,6 +595,82 @@ function getDirectionFromDelta(dx, dy) {
   return dy > 0 ? "down" : "up";
 }
 
+function showDragPreview(dx, dy) {
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  if (absX < 8 && absY < 8) {
+    applyTilePositions();
+    return;
+  }
+
+  const direction = getDirectionFromDelta(dx, dy);
+  const result = calculateMove(direction);
+
+  if (!result.moved) {
+    applyTilePositions();
+    return;
+  }
+
+  const dragDistance = direction === "left" || direction === "right"
+    ? Math.abs(dx)
+    : Math.abs(dy);
+
+  const step = metrics.tileSize + metrics.gap;
+
+  /*
+    重点修改：
+    手机端预览幅度变小。
+    最多只预览 0.38 个格子的距离。
+    不会像上一版那样整体偏移过大。
+  */
+  const maxPreviewPixels = step * 0.38;
+  const previewPixels = clamp(dragDistance * 0.22, 0, maxPreviewPixels);
+
+  tiles.forEach(tile => {
+    const element = tileElements.get(tile.id);
+
+    if (!element) return;
+
+    const target = result.animationTargets.get(tile.id);
+
+    if (!target) {
+      setElementPosition(element, tile.row, tile.col);
+      return;
+    }
+
+    const start = getCellPixelPosition(tile.row, tile.col);
+    const end = getCellPixelPosition(target.row, target.col);
+
+    const totalX = end.x - start.x;
+    const totalY = end.y - start.y;
+
+    /*
+      重点修改：
+      如果这个数字实际不会移动，就保持原位。
+      例如右滑时已经在最右边的数字不会再跟着手指晃动。
+    */
+    if (totalX === 0 && totalY === 0) {
+      setElementPixelPosition(element, start.x, start.y);
+      return;
+    }
+
+    const totalDistance = Math.sqrt(totalX * totalX + totalY * totalY);
+    const realPreviewDistance = Math.min(previewPixels, totalDistance);
+    const progress = totalDistance === 0 ? 0 : realPreviewDistance / totalDistance;
+
+    const x = start.x + totalX * progress;
+    const y = start.y + totalY * progress;
+
+    /*
+      重点修改：
+      位置始终在起点格子和目标格子之间。
+      不会超过目标格子，也不会被拖出 4×4 大棋盘。
+    */
+    setElementPixelPosition(element, x, y);
+  });
+}
+
 board.addEventListener("pointerdown", event => {
   if (isAnimating || gameOver) {
     return;
@@ -610,9 +679,8 @@ board.addEventListener("pointerdown", event => {
   drag.active = true;
   drag.startX = event.clientX;
   drag.startY = event.clientY;
-  drag.offsetX = 0;
-  drag.offsetY = 0;
   drag.pointerId = event.pointerId;
+  drag.direction = null;
 
   board.classList.add("dragging");
 
@@ -631,17 +699,7 @@ board.addEventListener("pointermove", event => {
   const dx = event.clientX - drag.startX;
   const dy = event.clientY - drag.startY;
 
-  const limit = Math.min(metrics.tileSize * 0.55, 52);
-
-  if (Math.abs(dx) > Math.abs(dy)) {
-    drag.offsetX = clamp(dx * 0.42, -limit, limit);
-    drag.offsetY = 0;
-  } else {
-    drag.offsetX = 0;
-    drag.offsetY = clamp(dy * 0.42, -limit, limit);
-  }
-
-  applyTilePositions();
+  showDragPreview(dx, dy);
 });
 
 board.addEventListener("pointerup", event => {
@@ -660,7 +718,7 @@ board.addEventListener("pointerup", event => {
 
   board.classList.remove("dragging");
 
-  const threshold = Math.max(28, metrics.tileSize * 0.18);
+  const threshold = Math.max(24, metrics.tileSize * 0.15);
 
   if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) {
     snapBackDrag();
