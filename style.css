@@ -236,11 +236,11 @@ button:disabled {
 }
 
 .tile-new .tile-inner {
-  animation: tileAppear 160ms ease-out;
+  animation: tileAppear 90ms ease-out;
 }
 
 .tile-merged .tile-inner {
-  animation: tileMerge 160ms ease-out;
+  animation: tileMerge 80ms ease-out;
 }
 
 @keyframes tileAppear {
