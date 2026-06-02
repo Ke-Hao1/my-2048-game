@@ -104,7 +104,7 @@ button:disabled {
   --board-padding: 12px;
   --gap: 12px;
   --tile-size: 90px;
-  --move-time: 135ms;
+  --move-time: 95ms;
 
   position: relative;
   width: 100%;

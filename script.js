@@ -11,7 +11,7 @@ const messageTitle = document.getElementById("messageTitle");
 const messageText = document.getElementById("messageText");
 
 const SIZE = 4;
-const MOVE_TIME = 135;
+const MOVE_TIME = 95;
 
 let gridCells = null;
 let tileLayer = null;
@@ -625,7 +625,7 @@ function showDragPreview(dx, dy) {
     不会像上一版那样整体偏移过大。
   */
   const maxPreviewPixels = step * 0.38;
-  const previewPixels = clamp(dragDistance * 0.22, 0, maxPreviewPixels);
+  const previewPixels = clamp(dragDistance * 0.32, 0, maxPreviewPixels);
 
   tiles.forEach(tile => {
     const element = tileElements.get(tile.id);
