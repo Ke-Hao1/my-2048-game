@@ -269,7 +269,7 @@ function renderTiles(options = {}) {
 
       setTimeout(() => {
         element.classList.remove("tile-new");
-      }, 180);
+      }, 110);
     }
 
     if (mergedTileIds.has(tile.id)) {
@@ -277,7 +277,7 @@ function renderTiles(options = {}) {
 
       setTimeout(() => {
         element.classList.remove("tile-merged");
-      }, 180);
+      }, 110);
     }
 
     setElementPosition(element, tile.row, tile.col);
@@ -525,7 +525,7 @@ function move(direction) {
       newTileIds: newTileId ? [newTileId] : [],
       mergedTileIds: Array.from(result.mergedTileIds)
     });
-  }, MOVE_TIME + 20);
+  }, MOVE_TIME + 5);
 }
 
 function undo() {
